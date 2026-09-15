@@ -1,6 +1,6 @@
 // EX1: Basic Syntax & Data Types
 
-void main() {
+void main() async {
   // Khai báo biến bằng các kiểu dữ liệu khác nhau.
   int age = 23;
   double height = 1.50;
@@ -173,6 +173,52 @@ void main() {
   print('Electric car model: ${electricCar.model}');
   print('Battery capacity: ${electricCar.batteryCapacity} kWh');
   electricCar.drive();
+
+  // EX5: Async, Future, Null Safety & Streams
+
+  print('\n--- Exercise 5: Async, Future, Null Safety & Streams ---');
+
+  // Async/Await with Future.delayed().
+  String message = await getMessage();
+  print('Async/Await: $message');
+
+  // ----- Null Safety -----
+  String? nullableName;
+
+  print('Nullable value: $nullableName');
+  print('Using ?? : ${nullableName ?? 'Unknown'}');
+
+  nullableName = 'Dieu';
+
+  print('After assigning value: $nullableName');
+
+  // ! means the value is not null.
+  print('Using ! : ${nullableName!}');
+
+  // ----- Stream -----
+  print('\nStream values:');
+
+  Stream<int> numberStream = countNumbers();
+
+  await for (int number in numberStream) {
+    print('Stream value: $number');
+  }
+}
+
+// EX5: Future function
+
+Future<String> getMessage() async {
+  await Future.delayed(const Duration(seconds: 1));
+  return 'Hello from Future!';
+}
+
+// EX5: Stream function
+
+Stream<int> countNumbers() async* {
+  for (int i = 1; i <= 5; i++) {
+    await Future.delayed(const Duration(milliseconds: 500));
+    yield i;
+  }
 }
 
 // EX4: Car Class
