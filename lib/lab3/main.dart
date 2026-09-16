@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 // Ex 1 - Product Model & Repository
 
@@ -92,4 +93,91 @@ Future<void> main() async {
   repository.dispose();
 
   print('========== EXERCISE 1 COMPLETED ==========');
+  await exercise2();
+}
+
+// Ex 2 - User Repository with JSON
+
+// User model
+class User {
+  final String name;
+  final String email;
+
+  User({
+    required this.name,
+    required this.email,
+  });
+
+  // Tạo đối tượng Người dùng từ dữ liệu JSON
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      name: json['name'] as String,
+      email: json['email'] as String,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'User(name: $name, email: $email)';
+  }
+}
+
+// Kho lưu trữ chịu trách nhiệm lấy thông tin người dùng.
+class UserRepository {
+
+  // Mô phỏng việc lấy dữ liệu JSON từ API.
+  Future<List<User>> fetchUsers() async {
+    // Mô phỏng độ trễ mạng
+    await Future.delayed(
+      const Duration(milliseconds: 300),
+    );
+
+    // Phản hồi JSON giả mạo từ API
+    const jsonString = '''
+    [
+      {
+        "name": "Alice",
+        "email": "alice@example.com"
+      },
+      {
+        "name": "Bob",
+        "email": "bob@example.com"
+      },
+      {
+        "name": "Charlie",
+        "email": "charlie@example.com"
+      }
+    ]
+    ''';
+
+    // Chuyển đổi chuỗi JSON thành đối tượng Dart.
+    final List<dynamic> jsonList = jsonDecode(jsonString);
+
+    // Chuyển đổi mỗi đối tượng JSON thành một đối tượng Người dùng.
+    return jsonList
+        .map(
+          (json) => User.fromJson(
+        json as Map<String, dynamic>,
+      ),
+    )
+        .toList();
+  }
+}
+
+// Run Ex2
+Future<void> exercise2() async {
+  print('\n========== EXERCISE 2 ==========');
+
+  final repository = UserRepository();
+
+  // Lấy thông tin người dùng bất đồng bộ
+  final users = await repository.fetchUsers();
+
+  print('Users fetched from JSON:');
+
+  for (final user in users) {
+    print(user);
+  }
+
+  print('========== EXERCISE 2 COMPLETED ==========');
 }
