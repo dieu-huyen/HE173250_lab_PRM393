@@ -94,6 +94,7 @@ Future<void> main() async {
 
   print('========== EXERCISE 1 COMPLETED ==========');
   await exercise2();
+  await exercise3();
 }
 
 // Ex 2 - User Repository with JSON
@@ -180,4 +181,31 @@ Future<void> exercise2() async {
   }
 
   print('========== EXERCISE 2 COMPLETED ==========');
+}
+
+// EXERCISE 3 - Async + Microtask Debugging
+
+Future<void> exercise3() async {
+  print('\n========== EXERCISE 3 ==========');
+
+  print('1. Start');
+
+  Future(() {
+    print('4. Future');
+  });
+
+  Future.microtask(() {
+    print('3. Microtask');
+  });
+
+  Future.delayed(const Duration(milliseconds: 100), () {
+    print('5. Future.delayed');
+  });
+
+  print('2. End');
+
+  // Wait for asynchronous tasks to complete
+  await Future.delayed(const Duration(milliseconds: 200));
+
+  print('========== EXERCISE 3 COMPLETED ==========');
 }
