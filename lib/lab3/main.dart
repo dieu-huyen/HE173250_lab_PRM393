@@ -96,6 +96,7 @@ Future<void> main() async {
   await exercise2();
   await exercise3();
   await exercise4();
+  await exercise5();
 }
 
 // Ex 2 - User Repository with JSON
@@ -231,4 +232,81 @@ Future<void> exercise4() async {
   }
 
   print('========== EXERCISE 4 COMPLETED ==========');
+}
+
+
+// EXERCISE 5 - Factory Constructor & Cache
+
+class ProductCache {
+  final int id;
+  final String name;
+  final double price;
+
+  static final Map<int, ProductCache> _cache = {};
+
+  ProductCache._({
+    required this.id,
+    required this.name,
+    required this.price,
+  });
+
+  // Factory constructor dùng cache để tái sử dụng object.
+  factory ProductCache({
+    required int id,
+    required String name,
+    required double price,
+  }) {
+    if (_cache.containsKey(id)) {
+      return _cache[id]!;
+    }
+
+    final product = ProductCache._(
+      id: id,
+      name: name,
+      price: price,
+    );
+
+    _cache[id] = product;
+    return product;
+  }
+
+  @override
+  String toString() {
+    return 'ProductCache(id: $id, name: $name, price: \$${price.toStringAsFixed(2)})';
+  }
+}
+
+Future<void> exercise5() async {
+  print('\n========== EXERCISE 5 ==========');
+
+  // Tạo ProductCache lần đầu với id = 1
+  final product1 = ProductCache(
+    id: 1,
+    name: 'Laptop',
+    price: 1200.0,
+  );
+
+  // Tạo lại với cùng id -> lấy object từ cache
+  final product2 = ProductCache(
+    id: 1,
+    name: 'Laptop',
+    price: 1200.0,
+  );
+
+  print('Product 1: $product1');
+  print('Product 2: $product2');
+
+  // Kiểm tra hai biến có cùng object hay không
+  print('Same instance: ${identical(product1, product2)}');
+
+  // id khác -> tạo object mới
+  final product3 = ProductCache(
+    id: 2,
+    name: 'Mouse',
+    price: 25.5,
+  );
+
+  print('Product 3: $product3');
+
+  print('========== EXERCISE 5 COMPLETED ==========');
 }
