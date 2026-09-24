@@ -95,6 +95,7 @@ Future<void> main() async {
   print('========== EXERCISE 1 COMPLETED ==========');
   await exercise2();
   await exercise3();
+  await exercise4();
 }
 
 // Ex 2 - User Repository with JSON
@@ -208,4 +209,26 @@ Future<void> exercise3() async {
   await Future.delayed(const Duration(milliseconds: 200));
 
   print('========== EXERCISE 3 COMPLETED ==========');
+}
+
+
+// EXERCISE 4 - Stream Transformation
+
+Future<void> exercise4() async {
+  print('\n========== EXERCISE 4 ==========');
+
+  // Tạo một Stream chứa các số từ 1 đến 5
+  final numbers = Stream.fromIterable([1, 2, 3, 4, 5]);
+
+  // Biến đổi mỗi số bằng cách nhân với 2
+  final doubledNumbers = numbers.map((number) => number * 2);
+
+  print('Doubled numbers:');
+
+  // Đọc từng phần tử trong Stream
+  await for (final number in doubledNumbers) {
+    print(number);
+  }
+
+  print('========== EXERCISE 4 COMPLETED ==========');
 }
