@@ -5,7 +5,6 @@ void main() {
   runApp(const SignupApp());
 }
 
-
 class SignupApp extends StatelessWidget {
   const SignupApp({super.key});
 
@@ -13,7 +12,7 @@ class SignupApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Lab 7.2 - Signup Form',
+      title: 'Form and Validation',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF2196F3),
@@ -28,6 +27,7 @@ class SignupApp extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF2196F3),
             foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 50),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(28),
             ),
@@ -43,7 +43,6 @@ class SignupApp extends StatelessWidget {
   }
 }
 
-
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -54,11 +53,13 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  // Controllers
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  // FocusNodes
   final _nameFocus = FocusNode();
   final _emailFocus = FocusNode();
   final _passwordFocus = FocusNode();
@@ -70,54 +71,49 @@ class _SignupScreenState extends State<SignupScreen> {
   String? _savedName;
   String? _savedEmail;
 
-  // Validate full name.
+  // Validate full name
   String? _validateName(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Full name is required';
     }
-
     return null;
   }
 
-  // Validate email format.
+  // Validate email
   String? _validateEmail(String? value) {
-    final email = value?.trim() ?? '';
-
-    if (email.isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Email is required';
     }
 
-    // Example: student@gmail.com
-    final emailPattern =
-    RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    final email = value.trim();
 
-    if (!emailPattern.hasMatch(email)) {
+    if (!RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    ).hasMatch(email)) {
       return 'Enter a valid email address';
     }
 
     return null;
   }
 
-  // Validate password length and digit.
+  // Validate password
   String? _validatePassword(String? value) {
-    final password = value ?? '';
-
-    if (password.isEmpty) {
+    if (value == null || value.isEmpty) {
       return 'Password is required';
     }
 
-    if (password.length < 8) {
+    if (value.length < 8) {
       return 'Password must be at least 8 characters';
     }
 
-    if (!RegExp(r'[0-9]').hasMatch(password)) {
-      return 'Password must contain at least 1 digit';
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      return 'Password must contain at least one digit';
     }
 
     return null;
   }
 
-  // Validate confirmation password.
+  // Validate confirm password
   String? _validateConfirmPassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please confirm your password';
@@ -130,46 +126,28 @@ class _SignupScreenState extends State<SignupScreen> {
     return null;
   }
 
-  // Submit only when every field is valid.
-
-
+  // Submit form
   void _submitForm() {
     FocusScope.of(context).unfocus();
 
-    debugPrint('SUBMIT BUTTON PRESSED');
-    debugPrint('Email: ${_emailController.text}');
-    debugPrint('Password length: ${_passwordController.text.length}');
-
     final form = _formKey.currentState;
 
-    if (form == null) {
-      debugPrint('ERROR: FormState is null');
-      return;
-    }
-
-    final isValid = form.validate();
-
-    debugPrint('FORM VALID: $isValid');
-
-    if (!isValid) {
-      debugPrint('SUBMISSION BLOCKED');
+    if (form == null || !form.validate()) {
       return;
     }
 
     form.save();
 
-    debugPrint('SUBMISSION SUCCESS');
-
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
-          content: Text('Signup successful!'),
+        SnackBar(
+          content: Text('Signup successful! Welcome, $_savedName.'),
           backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
         ),
       );
   }
-
 
   @override
   void dispose() {
@@ -188,200 +166,181 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Forms & Validation'),
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        ),
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 500),
-              child: Form(
-                key: _formKey,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                child: ListView(
-                  padding: const EdgeInsets.all(24),
-                  children: [
-                    const Icon(
-                      Icons.person_add_alt_1,
-                      size: 72,
-                      color: const Color(0xFF2196F3),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Create Account',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Enter your information to sign up.',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 28),
-
-                    // Full Name
-                    TextFormField(
-                      controller: _nameController,
-                      focusNode: _nameFocus,
-                      keyboardType: TextInputType.name,
-                      textInputAction: TextInputAction.next,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Full Name',
-                        hintText: 'Enter your full name',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: _validateName,
-                      onFieldSubmitted: (_) {
-                        FocusScope.of(context).requestFocus(_emailFocus);
-                      },
-                      onSaved: (value) {
-                        _savedName = value?.trim();
-                      },
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Email
-                    TextFormField(
-                      controller: _emailController,
-                      focusNode: _emailFocus,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        hintText: 'student@gmail.com',
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
-                      validator: _validateEmail,
-                      onFieldSubmitted: (_) {
-                        FocusScope.of(context)
-                            .requestFocus(_passwordFocus);
-                      },
-                      onSaved: (value) {
-                        _savedEmail = value?.trim();
-                      },
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Password
-                    TextFormField(
-                      controller: _passwordController,
-                      focusNode: _passwordFocus,
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.next,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          tooltip: _obscurePassword
-                              ? 'Show password'
-                              : 'Hide password',
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
-                      ),
-                      validator: _validatePassword,
-                      onChanged: (_) {
-                        // Recheck confirmation if the password changes.
-                        _formKey.currentState?.validate();
-                      },
-                      onFieldSubmitted: (_) {
-                        FocusScope.of(context)
-                            .requestFocus(_confirmPasswordFocus);
-                      },
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Confirm Password
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      focusNode: _confirmPasswordFocus,
-                      obscureText: _obscureConfirmPassword,
-                      textInputAction: TextInputAction.done,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      decoration: InputDecoration(
-                        labelText: 'Confirm Password',
-                        prefixIcon: const Icon(Icons.lock_reset),
-                        suffixIcon: IconButton(
-                          tooltip: _obscureConfirmPassword
-                              ? 'Show password'
-                              : 'Hide password',
-                          icon: Icon(
-                            _obscureConfirmPassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscureConfirmPassword =
-                              !_obscureConfirmPassword;
-                            });
-                          },
-                        ),
-                      ),
-                      validator: _validateConfirmPassword,
-                      onFieldSubmitted: (_) => _submitForm(),
-                    ),
-                    const SizedBox(height: 26),
-
-                    // Submit button
-                    SizedBox(
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _submitForm,
-                        child: const Text(
-                          'SUBMIT',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Password requirements
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Password requirements',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text('• At least 8 characters'),
-                            Text('• At least 1 digit (0–9)'),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Form and Validation'),
+      ),
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: SafeArea(
+          child: Form(
+            key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            child: ListView(
+              padding: const EdgeInsets.all(24),
+              keyboardDismissBehavior:
+              ScrollViewKeyboardDismissBehavior.onDrag,
+              children: [
+                const Icon(
+                  Icons.person_add_alt_1,
+                  size: 64,
+                  color: Color(0xFF2196F3),
                 ),
-              ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Create Your Account',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2196F3),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Please fill in the information below.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.black54),
+                ),
+                const SizedBox(height: 28),
+
+                // Full Name
+                TextFormField(
+                  controller: _nameController,
+                  focusNode: _nameFocus,
+                  textInputAction: TextInputAction.next,
+                  textCapitalization: TextCapitalization.words,
+                  validator: _validateName,
+                  onFieldSubmitted: (_) {
+                    FocusScope.of(context).requestFocus(_emailFocus);
+                  },
+                  onSaved: (value) {
+                    _savedName = value?.trim();
+                  },
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    hintText: 'Enter your full name',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Email
+                TextFormField(
+                  controller: _emailController,
+                  focusNode: _emailFocus,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autocorrect: false,
+                  validator: _validateEmail,
+                  onFieldSubmitted: (_) {
+                    FocusScope.of(context).requestFocus(_passwordFocus);
+                  },
+                  onSaved: (value) {
+                    _savedEmail = value?.trim();
+                  },
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    hintText: 'example@email.com',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Password
+                TextFormField(
+                  controller: _passwordController,
+                  focusNode: _passwordFocus,
+                  obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.next,
+                  validator: _validatePassword,
+                  onFieldSubmitted: (_) {
+                    FocusScope.of(context)
+                        .requestFocus(_confirmPasswordFocus);
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    hintText: 'At least 8 characters and 1 digit',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      tooltip: _obscurePassword
+                          ? 'Show password'
+                          : 'Hide password',
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Confirm Password
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  focusNode: _confirmPasswordFocus,
+                  obscureText: _obscureConfirmPassword,
+                  textInputAction: TextInputAction.done,
+                  validator: _validateConfirmPassword,
+                  onFieldSubmitted: (_) {
+                    _submitForm();
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
+                    hintText: 'Re-enter your password',
+                    prefixIcon: const Icon(Icons.lock_reset_outlined),
+                    suffixIcon: IconButton(
+                      tooltip: _obscureConfirmPassword
+                          ? 'Show password'
+                          : 'Hide password',
+                      icon: Icon(
+                        _obscureConfirmPassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureConfirmPassword =
+                          !_obscureConfirmPassword;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+
+                // Submit button
+                ElevatedButton(
+                  onPressed: _submitForm,
+                  child: const Text(
+                    'Sign Up',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                const Text(
+                  'Tip: Use Next on the keyboard to move between fields. '
+                      'Tap outside the fields to dismiss the keyboard.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
