@@ -4,91 +4,117 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-void main() {
-  runApp(const Lab81App());
+// Model đại diện cho một bài viết.
+class Post {
+  final int userId;
+  final int id;
+  final String title;
+  final String body;
+
+  const Post({
+    required this.userId,
+    required this.id,
+    required this.title,
+    required this.body,
+  });
+
+  // Chuyển JSON thành đối tượng Post.
+  factory Post.fromJson(Map<String, dynamic> json) {
+    return Post(
+      userId: json['userId'] as int,
+      id: json['id'] as int,
+      title: json['title'] as String,
+      body: json['body'] as String,
+    );
+  }
 }
 
-class Lab81App extends StatelessWidget {
-  const Lab81App({super.key});
+void main() {
+  runApp(const Lab82App());
+}
+
+class Lab82App extends StatelessWidget {
+  const Lab82App({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Lab 8.1 - GET Request',
+      title: 'Lab 8.2 - Posts',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
+          seedColor: Colors.blue,
         ),
         useMaterial3: true,
       ),
-      home: const GetRequestScreen(),
+      home: const PostsScreen(),
     );
   }
 }
 
-class GetRequestScreen extends StatefulWidget {
-  const GetRequestScreen({super.key});
+class PostsScreen extends StatefulWidget {
+  const PostsScreen({super.key});
 
   @override
-  State<GetRequestScreen> createState() =>
-      _GetRequestScreenState();
+  State<PostsScreen> createState() => _PostsScreenState();
 }
 
-class _GetRequestScreenState extends State<GetRequestScreen> {
-  bool _isLoading = false;
-  String _result = 'Press the button to fetch API data.';
-  String _status = '';
+class _PostsScreenState extends State<PostsScreen> {
+  List<Post> posts = [];
+  bool isLoading = true;
+  String? errorMessage;
 
+  @override
+  void initState() {
+    super.initState();
+    fetchPosts();
+  }
+
+  // Gọi API và chuyển JSON thành List<Post>.
   Future<void> fetchPosts() async {
     setState(() {
-      _isLoading = true;
-      _result = '';
-      _status = '';
+      isLoading = true;
+      errorMessage = null;
     });
 
     try {
-      final url = Uri.parse(
-        'https://jsonplaceholder.typicode.com/posts',
+      final response = await http.get(
+        Uri.parse(
+          'https://jsonplaceholder.typicode.com/posts',
+        ),
       );
 
-      final response = await http
-          .get(url)
-          .timeout(const Duration(seconds: 15));
-
-      debugPrint('Status code: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        // Decode the JSON response.
-        final List<dynamic> data =
-        json.decode(response.body) as List<dynamic>;
-
-        // Print raw JSON data in the Debug Console.
-        debugPrint('API response: ${response.body}');
-
-        setState(() {
-          _status = 'Success: HTTP ${response.statusCode}';
-          _result =
-          'Successfully fetched ${data.length} posts!\n\n'
-              'First post:\n'
-              '${const JsonEncoder.withIndent('  ').convert(data.first)}';
-        });
-      } else {
+      if (response.statusCode != 200) {
         throw Exception(
-          'Request failed with status ${response.statusCode}',
+          'HTTP error: ${response.statusCode}',
         );
       }
-    } catch (e) {
-      debugPrint('GET request error: $e');
+
+      final List<dynamic> jsonData =
+      jsonDecode(response.body) as List<dynamic>;
+
+      final List<Post> loadedPosts = jsonData.map((item) {
+        return Post.fromJson(
+          item as Map<String, dynamic>,
+        );
+      }).toList();
+
+      if (!mounted) return;
 
       setState(() {
-        _status = 'Request failed';
-        _result = 'Unable to fetch API data.\n$e';
+        posts = loadedPosts;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage =
+        'Unable to load posts. Please check your connection.';
       });
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          isLoading = false;
         });
       }
     }
@@ -98,64 +124,118 @@ class _GetRequestScreenState extends State<GetRequestScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lab 8.1 - GET Request'),
-        backgroundColor:
-        Theme.of(context).colorScheme.primaryContainer,
+        title: const Text('Lab 8.2 - Posts'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            onPressed: isLoading ? null : fetchPosts,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Icon(
-              Icons.cloud_download_outlined,
-              size: 64,
-              color: Colors.indigo,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Simple GET Request',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+      body: buildBody(),
+    );
+  }
+
+  Widget buildBody() {
+    // Trạng thái đang tải dữ liệu.
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    // Trạng thái lỗi.
+    if (errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Colors.red,
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'API: jsonplaceholder.typicode.com/posts',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: _isLoading ? null : fetchPosts,
-              icon: const Icon(Icons.download),
-              label: const Text('Fetch API Data'),
-            ),
-            const SizedBox(height: 20),
-            if (_isLoading)
-              const Center(
-                child: CircularProgressIndicator(),
-              ),
-            if (_status.isNotEmpty)
+              const SizedBox(height: 12),
               Text(
-                _status,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: _status.startsWith('Success')
-                      ? Colors.green
-                      : Colors.red,
-                ),
+                errorMessage!,
+                textAlign: TextAlign.center,
               ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: SingleChildScrollView(
-                child: SelectableText(_result),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: fetchPosts,
+                child: const Text('Try Again'),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+      );
+    }
+
+    // Danh sách rỗng.
+    if (posts.isEmpty) {
+      return const Center(
+        child: Text('No posts available.'),
+      );
+    }
+
+    return Column(
+      children: [
+        // Hiển thị tổng số bài viết.
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          color: Colors.blue.shade50,
+          child: Text(
+            'Total posts: ${posts.length}',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+
+        // Hiển thị danh sách bằng ListView.builder.
+        Expanded(
+          child: ListView.builder(
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              final post = posts[index];
+
+              return Card(
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                elevation: 2,
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(12),
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    child: Text('${post.id}'),
+                  ),
+                  title: Text(
+                    post.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(post.body),
+                  ),
+                  isThreeLine: true,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
