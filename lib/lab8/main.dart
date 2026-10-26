@@ -1,27 +1,48 @@
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-// Model đại diện cho một bài viết.
+void main() {
+  runApp(const Lab83App());
+}
+
+class Lab83App extends StatelessWidget {
+  const Lab83App({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Lab 8.3 - Loading & Errors',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1976D2),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF4F7FB),
+      ),
+      home: const PostsScreen(),
+    );
+  }
+}
+
+// Model class
 class Post {
-  final int userId;
   final int id;
   final String title;
   final String body;
 
   const Post({
-    required this.userId,
     required this.id,
     required this.title,
     required this.body,
   });
 
-  // Chuyển JSON thành đối tượng Post.
   factory Post.fromJson(Map<String, dynamic> json) {
     return Post(
-      userId: json['userId'] as int,
       id: json['id'] as int,
       title: json['title'] as String,
       body: json['body'] as String,
@@ -29,29 +50,7 @@ class Post {
   }
 }
 
-void main() {
-  runApp(const Lab82App());
-}
-
-class Lab82App extends StatelessWidget {
-  const Lab82App({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Lab 8.2 - Posts',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-        ),
-        useMaterial3: true,
-      ),
-      home: const PostsScreen(),
-    );
-  }
-}
-
+// Posts screen
 class PostsScreen extends StatefulWidget {
   const PostsScreen({super.key});
 
@@ -70,7 +69,7 @@ class _PostsScreenState extends State<PostsScreen> {
     fetchPosts();
   }
 
-  // Gọi API và chuyển JSON thành List<Post>.
+  // Fetch data from API
   Future<void> fetchPosts() async {
     setState(() {
       isLoading = true;
@@ -78,97 +77,188 @@ class _PostsScreenState extends State<PostsScreen> {
     });
 
     try {
-      final response = await http.get(
-        Uri.parse(
-          'https://jsonplaceholder.typicode.com/posts',
-        ),
-      );
+      final response = await http
+          .get(
+        Uri.parse('https://jsonplaceholder.typicode.com/posts'),
+      )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode != 200) {
         throw Exception(
-          'HTTP error: ${response.statusCode}',
+          'Server returned status code ${response.statusCode}',
         );
       }
 
-      final List<dynamic> jsonData =
-      jsonDecode(response.body) as List<dynamic>;
+      final List<dynamic> jsonData = jsonDecode(response.body);
 
-      final List<Post> loadedPosts = jsonData.map((item) {
-        return Post.fromJson(
+      final List<Post> loadedPosts = jsonData
+          .map(
+            (item) => Post.fromJson(
           item as Map<String, dynamic>,
-        );
-      }).toList();
+        ),
+      )
+          .toList();
 
       if (!mounted) return;
 
       setState(() {
         posts = loadedPosts;
+        isLoading = false;
+        errorMessage = null;
       });
+    } on TimeoutException {
+      showError('Request timed out. Please try again.');
+    } on http.ClientException {
+      showError('Network error. Please check your connection.');
     } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        errorMessage =
-        'Unable to load posts. Please check your connection.';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      showError('Unable to load posts. Please try again.');
     }
+  }
+
+  // Handle errors
+  void showError(String message) {
+    if (!mounted) return;
+
+    setState(() {
+      isLoading = false;
+      errorMessage = message;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lab 8.2 - Posts'),
-        backgroundColor: Colors.blue,
+        title: const Text(
+          'Lab 8.3 - Loading & Errors',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: const Color(0xFF1976D2),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            tooltip: 'Refresh posts',
             onPressed: isLoading ? null : fetchPosts,
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
           ),
         ],
       ),
-      body: buildBody(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Posts summary
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              color: Colors.white,
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.article_outlined,
+                    color: Color(0xFF1976D2),
+                    size: 21,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Posts',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    isLoading
+                        ? 'Loading...'
+                        : errorMessage != null
+                        ? 'Error'
+                        : 'Total: ${posts.length}',
+                    style: TextStyle(
+                      color: errorMessage != null
+                          ? Colors.red
+                          : const Color(0xFF64748B),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Loading, error or success content
+            Expanded(
+              child: buildContent(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget buildBody() {
-    // Trạng thái đang tải dữ liệu.
+  Widget buildContent() {
+    // 1. Loading state
     if (isLoading) {
       return const Center(
-        child: CircularProgressIndicator(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text(
+              'Loading posts...',
+              style: TextStyle(
+                color: Colors.blueGrey,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       );
     }
 
-    // Trạng thái lỗi.
+    // 2. Error state
     if (errorMessage != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(
-                Icons.error_outline,
-                size: 48,
-                color: Colors.red,
+                Icons.cloud_off_rounded,
+                size: 64,
+                color: Colors.redAccent,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+              const Text(
+                'Oops! Something went wrong',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
               Text(
                 errorMessage!,
                 textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.blueGrey,
+                  height: 1.5,
+                ),
               ),
-              const SizedBox(height: 12),
-              ElevatedButton(
+              const SizedBox(height: 20),
+              FilledButton.icon(
                 onPressed: fetchPosts,
-                child: const Text('Try Again'),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try Again'),
               ),
             ],
           ),
@@ -176,66 +266,93 @@ class _PostsScreenState extends State<PostsScreen> {
       );
     }
 
-    // Danh sách rỗng.
+    // Empty state
     if (posts.isEmpty) {
       return const Center(
         child: Text('No posts available.'),
       );
     }
 
-    return Column(
-      children: [
-        // Hiển thị tổng số bài viết.
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          color: Colors.blue.shade50,
-          child: Text(
-            'Total posts: ${posts.length}',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+    // 3. Success state - display posts
+    return RefreshIndicator(
+      onRefresh: fetchPosts,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 20),
+        itemCount: posts.length,
+        itemBuilder: (context, index) {
+          final post = posts[index];
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            elevation: 0,
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(
+                color: Color(0xFFE2E8F0),
+              ),
             ),
-          ),
-        ),
-
-        // Hiển thị danh sách bằng ListView.builder.
-        Expanded(
-          child: ListView.builder(
-            itemCount: posts.length,
-            itemBuilder: (context, index) {
-              final post = posts[index];
-
-              return Card(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                elevation: 2,
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(12),
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    child: Text('${post.id}'),
-                  ),
-                  title: Text(
-                    post.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Post number
+                  Container(
+                    width: 34,
+                    height: 34,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE3F0FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${post.id}',
+                      style: const TextStyle(
+                        color: Color(0xFF1976D2),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(post.body),
+                  const SizedBox(width: 12),
+
+                  // Post title and body
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          post.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            height: 1.35,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          post.body,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            height: 1.5,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  isThreeLine: true,
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
