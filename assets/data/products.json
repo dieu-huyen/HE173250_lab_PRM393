@@ -1,0 +1,33 @@
+
+[
+  {
+    "id": 1,
+    "name": "Laptop",
+    "category": "Electronics",
+    "price": 15000000
+  },
+  {
+    "id": 2,
+    "name": "Wireless Mouse",
+    "category": "Accessories",
+    "price": 350000
+  },
+  {
+    "id": 3,
+    "name": "Mechanical Keyboard",
+    "category": "Accessories",
+    "price": 1200000
+  },
+  {
+    "id": 4,
+    "name": "Monitor",
+    "category": "Electronics",
+    "price": 4200000
+  },
+  {
+    "id": 5,
+    "name": "Headphones",
+    "category": "Audio",
+    "price": 890000
+  }
+]
